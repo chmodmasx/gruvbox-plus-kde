@@ -35,7 +35,7 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends plasma-desktop plasma-workspace kwin-wayland \
                 kwin-style-aurorae breeze kpackagetool6 libkf6config-bin dbus dbus-user-session \
-                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin weston libegl1-mesa-dev
+                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin weston libegl-mesa0
               # KWin may have a file capability for realtime scheduling which
               # Docker cannot grant. The virtual backend needs no such capability.
               caps="$(getcap /usr/bin/kwin_wayland)"
