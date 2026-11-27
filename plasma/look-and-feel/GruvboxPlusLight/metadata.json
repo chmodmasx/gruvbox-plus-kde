@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "SylEleuth"
+            }
+        ],
+        "Category": "",
+        "Description": "GruvboxPlus light theme",
+        "Id": "GruvboxPlusLight",
+        "License": "GPLv3",
+        "Name": "GruvboxPlus Light",
+        "Version": "2.0",
+        "Website": "https://github.com/SylEleuth/gruvbox-plus-kde"
+    },
+    "Keywords": "Desktop;Workspace;Appearance;Look and Feel;Logout;Lock;Suspend;Shutdown;Hibernate;",
+    "X-Plasma-APIVersion": "2"
+}
