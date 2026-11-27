@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Baseline only: install unchanged upstream resources into a disposable user.
+# Install exact resources from the tested revision into a disposable user.
 set -euo pipefail
 src="$1"; out="$2"; variant="$3"
 id="GruvboxPlus$variant"
@@ -11,9 +11,9 @@ export QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$XDG_RUNTIME_DIR" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME/kdedefaults" "$out"
 chmod 700 "$XDG_RUNTIME_DIR"
 exec > >(tee "$out/probe.log") 2>&1
-kwin_pid= shell_pid= app_pid=
+kwin_pid= shell_pid= app_pid= splash_pid=
 cleanup() {
-    for pid in "$app_pid" "$shell_pid" "$kwin_pid"; do
+    for pid in "$splash_pid" "$app_pid" "$shell_pid" "$kwin_pid"; do
         if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi
     done
     wait || true
@@ -111,6 +111,9 @@ shell_ready() {
     return 1
 }
 probe shell_ready shell_ready
+source "$(dirname "$0")/visual.sh"
+probe kwin_decoration verify_decoration
+probe desktop_capture capture desktop
 # A regular Wayland application exercises the window decoration selection.
 kdialog --msgbox "Gruvbox baseline $variant" >"$out/client.log" 2>&1 &
 app_pid=$!
@@ -118,6 +121,11 @@ sleep 5
 probe kwin_alive kill -0 "$kwin_pid"
 probe shell_alive kill -0 "$shell_pid"
 probe client_alive kill -0 "$app_pid"
+probe window_capture capture window
+kill "$app_pid" 2>/dev/null || true
+wait "$app_pid" || true
+app_pid=
+probe splash_runtime test_splash
 cat "$status"
 # Do not conflate failed component checks with an infrastructure failure.
 # Nonzero probe results remain in the artifact and fail the baseline job.
