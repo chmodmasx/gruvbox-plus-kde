@@ -13,9 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         variant: [Dark, Light]
-        backend: [virtual, nested]
+        backend: [virtual, vgem]
     steps:
       - uses: actions/checkout@v4
+      - name: Check shell syntax before installing packages
+        run: |
+          for script in tests/baseline/*.sh; do bash -n "$script"; done
       - name: Fetch original companion icon theme (pinned)
         uses: actions/checkout@v4
         with:
@@ -23,19 +26,48 @@ jobs:
           ref: b1ab6ba6074952d1c01932846aa08c180d36185f
           path: .ci-icons
           persist-credentials: false
+      - name: Detect optional vgem device for visual tests
+        if: matrix.backend == 'vgem'
+        id: vgem
+        run: |
+          mkdir -p baseline-output
+          if ! sudo modprobe vgem >baseline-output/vgem-host.log 2>&1; then
+            cat baseline-output/vgem-host.log
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          for card in /sys/class/drm/card[0-9]*; do
+            [ -e "$card/device/driver" ] || continue
+            [ "$(basename "$(readlink -f "$card/device/driver")")" = vgem ] || continue
+            device="/dev/dri/$(basename "$card")"
+            [ -c "$device" ] || continue
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "device=$device" >> "$GITHUB_OUTPUT"
+            echo "gid=$(stat -c %g "$device")" >> "$GITHUB_OUTPUT"
+            exit 0
+          done
+          echo "No vgem DRM device found" | tee -a baseline-output/vgem-host.log
+          echo "available=false" >> "$GITHUB_OUTPUT"
       - name: Test theme resources
+        if: matrix.backend == 'virtual' || steps.vgem.outputs.available == 'true'
         env:
           VARIANT: ${{ matrix.variant }}
           BACKEND: ${{ matrix.backend }}
+          VGEM_DEVICE: ${{ steps.vgem.outputs.device }}
+          VGEM_GID: ${{ steps.vgem.outputs.gid }}
         run: |
           mkdir -p baseline-output
-          docker run --rm -v "$PWD:/source:ro" -v "$PWD/baseline-output:/output" \
-            -e VARIANT -e BACKEND ubuntu:26.04 bash -euc '
+          device_args=()
+          if [[ "$BACKEND" == vgem ]]; then
+            device_args=(--device "$VGEM_DEVICE:$VGEM_DEVICE")
+          fi
+          docker run --rm "${device_args[@]}" -v "$PWD:/source:ro" -v "$PWD/baseline-output:/output" \
+            -e VARIANT -e BACKEND -e VGEM_GID ubuntu:26.04 bash -euc '
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
               apt-get install -y --no-install-recommends plasma-desktop plasma-workspace kwin-wayland \
                 kwin-style-aurorae breeze kpackagetool6 libkf6config-bin dbus dbus-user-session \
-                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin weston libegl-mesa0
+                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin libegl-mesa0
               # KWin may have a file capability for realtime scheduling which
               # Docker cannot grant. The virtual backend needs no such capability.
               caps="$(getcap /usr/bin/kwin_wayland)"
@@ -47,9 +79,19 @@ jobs:
                 esac
               fi
               useradd -m -s /bin/bash ci
+              if [ "$BACKEND" = vgem ]; then
+                group="$(getent group "$VGEM_GID" | cut -d: -f1)"
+                if [ -z "$group" ]; then groupadd -g "$VGEM_GID" vgem-ci; group=vgem-ci; fi
+                usermod -aG "$group" ci
+              fi
               chown ci:ci /output
               runuser -u ci -- dbus-run-session -- bash /source/tests/baseline/probe.sh /source /output "$VARIANT" "$BACKEND"
             '
+      - name: Report unavailable visual backend
+        if: matrix.backend == 'vgem' && steps.vgem.outputs.available != 'true'
+        run: |
+          echo "::error::Visual test blocked: runner does not expose a vgem device"
+          exit 2
       - uses: actions/upload-artifact@v4
         if: always()
         with:

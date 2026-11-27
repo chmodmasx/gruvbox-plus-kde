@@ -11,9 +11,9 @@ export QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$XDG_RUNTIME_DIR" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME/kdedefaults" "$out"
 chmod 700 "$XDG_RUNTIME_DIR"
 exec > >(tee "$out/probe.log") 2>&1
-kwin_pid= shell_pid= app_pid= splash_pid= weston_pid= pipewire_pid=
+kwin_pid= shell_pid= app_pid= splash_pid= pipewire_pid=
 cleanup() {
-    for pid in "$splash_pid" "$app_pid" "$shell_pid" "$kwin_pid" "$weston_pid" "$pipewire_pid"; do
+    for pid in "$splash_pid" "$app_pid" "$shell_pid" "$kwin_pid" "$pipewire_pid"; do
         if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi
     done
     wait || true
@@ -119,7 +119,7 @@ shell_ready() {
 probe shell_ready shell_ready
 source "$(dirname "$0")/visual.sh"
 probe kwin_decoration verify_decoration
-if [[ "$backend" == nested ]]; then probe desktop_capture capture desktop; fi
+if [[ "$backend" == vgem ]]; then probe desktop_capture capture desktop; fi
 # A regular Wayland application exercises the window decoration selection.
 kdialog --msgbox "Gruvbox baseline $variant" >"$out/client.log" 2>&1 &
 app_pid=$!
@@ -127,12 +127,12 @@ sleep 5
 probe kwin_alive kill -0 "$kwin_pid"
 probe shell_alive kill -0 "$shell_pid"
 probe client_alive kill -0 "$app_pid"
-if [[ "$backend" == nested ]]; then probe window_capture capture window; fi
+if [[ "$backend" == vgem ]]; then probe window_capture capture window; fi
 kill "$app_pid" 2>/dev/null || true
 wait "$app_pid" || true
 app_pid=
 probe splash_runtime test_splash
-if [[ "$backend" == nested ]]; then probe splash_capture capture_splash; fi
+if [[ "$backend" == vgem ]]; then probe splash_capture capture_splash; fi
 cat "$status"
 # Do not conflate failed component checks with an infrastructure failure.
 # Nonzero probe results remain in the artifact and fail the baseline job.
