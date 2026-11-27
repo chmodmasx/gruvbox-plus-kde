@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: [Dark, Light]
+        backend: [virtual, nested]
     steps:
       - uses: actions/checkout@v4
       - name: Fetch original companion icon theme (pinned)
@@ -25,15 +26,16 @@ jobs:
       - name: Test theme resources
         env:
           VARIANT: ${{ matrix.variant }}
+          BACKEND: ${{ matrix.backend }}
         run: |
           mkdir -p baseline-output
           docker run --rm -v "$PWD:/source:ro" -v "$PWD/baseline-output:/output" \
-            -e VARIANT ubuntu:26.04 bash -euc '
+            -e VARIANT -e BACKEND ubuntu:26.04 bash -euc '
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
               apt-get install -y --no-install-recommends plasma-desktop plasma-workspace kwin-wayland \
                 kwin-style-aurorae breeze kpackagetool6 libkf6config-bin dbus dbus-user-session \
-                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin
+                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin weston libegl1-mesa-dev
               # KWin may have a file capability for realtime scheduling which
               # Docker cannot grant. The virtual backend needs no such capability.
               caps="$(getcap /usr/bin/kwin_wayland)"
@@ -46,11 +48,11 @@ jobs:
               fi
               useradd -m -s /bin/bash ci
               chown ci:ci /output
-              runuser -u ci -- dbus-run-session -- bash /source/tests/baseline/probe.sh /source /output "$VARIANT"
+              runuser -u ci -- dbus-run-session -- bash /source/tests/baseline/probe.sh /source /output "$VARIANT" "$BACKEND"
             '
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: upstream-baseline-${{ matrix.variant }}
+          name: upstream-baseline-${{ matrix.variant }}-${{ matrix.backend }}
           path: baseline-output/
           if-no-files-found: warn
