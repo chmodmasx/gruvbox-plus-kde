@@ -15,7 +15,14 @@ jobs:
         variant: [Dark, Light]
     steps:
       - uses: actions/checkout@v4
-      - name: Test unmodified upstream resources
+      - name: Fetch original companion icon theme (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: SylEleuth/gruvbox-plus-icon-pack
+          ref: b1ab6ba6074952d1c01932846aa08c180d36185f
+          path: .ci-icons
+          persist-credentials: false
+      - name: Test theme resources
         env:
           VARIANT: ${{ matrix.variant }}
         run: |
@@ -26,7 +33,7 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends plasma-desktop plasma-workspace kwin-wayland \
                 kwin-style-aurorae breeze kpackagetool6 libkf6config-bin dbus dbus-user-session \
-                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire
+                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog libcap2-bin kde-spectacle plasma-pa pipewire libkf6iconthemes-bin
               # KWin may have a file capability for realtime scheduling which
               # Docker cannot grant. The virtual backend needs no such capability.
               caps="$(getcap /usr/bin/kwin_wayland)"

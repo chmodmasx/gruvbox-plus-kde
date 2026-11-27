@@ -10,3 +10,5 @@ Original commit: 30ef04b4922948e77b0c5a0d37e022c0808d71db.
 - Next CI adds KWin supportInformation, desktop/window/splash captures with KDE Spectacle and the actual splash test. Screenshots and full visual fidelity are not yet verified. External icon pack is outside this test.
 
 No original graphics, colors, Aurorae assets or splash assets have been modified. The only theme change is the global metadata conversion.
+
+Additional evidence from the downloaded successful CI artifacts: both Aurorae plugins are installed; the effective KSplash theme is already the correct Gruvbox variant without modifying defaults. Both sessions report one desktop and one panel. Missing portal/audio and the system icontasks applet warning belong to the test environment; they are not proven theme defects. The first visual CI attempt failed before testing because Ubuntu names the package kde-spectacle. The companion icon pack is now fetched from its upstream v6.7.0 commit b1ab6ba6074952d1c01932846aa08c180d36185f and checked with KF6 kiconfinder6; it remains external to the theme repository.

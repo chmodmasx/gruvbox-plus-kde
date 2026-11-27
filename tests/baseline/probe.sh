@@ -71,7 +71,11 @@ probe desktop_apply plasma-apply-desktoptheme "$id"
 probe desktop_config read_config "$id" --file plasmarc --group Theme --key name
 probe colors_apply plasma-apply-colorscheme "$id"
 probe colors_config read_config "$id" --file kdeglobals --group General --key ColorScheme
-# External icon theme intentionally not installed; not part of this repository.
+# Test the externally maintained companion without copying it into this repository.
+source "$(dirname "$0")/icons.sh"
+probe icon_config read_config "Gruvbox-Plus-$variant" --file kdeglobals --group Icons --key Theme
+probe icon_lookup test_icons
+probe splash_config read_config "$id" --file ksplashrc --group KSplash --key Theme
 # Start genuine KWin virtual Wayland backend, no X11.
 unset DISPLAY WAYLAND_DISPLAY QT_QPA_PLATFORM
 kwin_wayland --virtual --width 1280 --height 800 --socket baseline-ci --no-lockscreen \
