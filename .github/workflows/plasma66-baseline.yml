@@ -1,0 +1,39 @@
+name: Original theme - Plasma 6.6 baseline
+on:
+  push:
+    branches: ['test/plasma66-baseline']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [Dark, Light]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test unmodified upstream resources
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          mkdir -p baseline-output
+          docker run --rm -v "$PWD:/source:ro" -v "$PWD/baseline-output:/output" \
+            -e VARIANT ubuntu:26.04 bash -euc '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends plasma-desktop plasma-workspace kwin-wayland \
+                kwin-style-aurorae breeze kpackagetool6 libkf6config-bin dbus dbus-user-session \
+                wayland-utils libgl1-mesa-dri fonts-dejavu-core kdialog
+              useradd -m -s /bin/bash ci
+              chown ci:ci /output
+              runuser -u ci -- dbus-run-session -- bash /source/tests/baseline/probe.sh /source /output "$VARIANT"
+            '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstream-baseline-${{ matrix.variant }}
+          path: baseline-output/
+          if-no-files-found: warn
